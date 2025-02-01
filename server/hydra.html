@@ -1,3 +1,13 @@
+<style>
+  .pulse {
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    50% {
+      opacity: 0.5;
+    }
+  }
+</style>
 <body
   style="
     overflow: hidden;
@@ -14,21 +24,39 @@
 </body>
 
 <script>
-  let boardCols = 10;
+  class GameState {
+    constructor({ board, moves, headPosition, nLength, tailWipeQueue }) {
+      this.board = board;
+      this.moves = moves;
+      this.headPosition = headPosition;
+      this.nLength = nLength;
+      this.tailWipeQueue = tailWipeQueue;
+    }
+  }
+
+  let boardCols = 20;
   let boardRows = 10;
-  let moves = [
-    {
-      r: 5,
-      c: 5,
-      dir: "east",
-      tick: 1,
-    },
-  ]; // { r,c, direction, nTick }[]
-  let headPosition = { r: 5, c: 5 };
+
+  let state1 = new GameState({
+    board: new Array(boardRows)
+      .fill(null)
+      .map(() => new Array(boardCols).fill(0)),
+    moves: [
+      {
+        r: 5,
+        c: 5,
+        dir: "east",
+        tick: 1,
+      },
+    ],
+    nLength: 2,
+    tailWipeQueue: [],
+    headPosition: { r: 5, c: 5 },
+  });
+
+  let foodDrops = [];
   let nTick = 1;
   let nLength = 2;
-
-  let tailWipeQueue = [];
 
   /**
    * 0 = empty
@@ -36,7 +64,8 @@
    * 2 = tail
    * 3 = food
    */
-  let board = new Array(boardCols)
+
+  let board2 = new Array(boardCols)
     .fill(null)
     .map(() => new Array(boardRows).fill(0));
 
@@ -44,13 +73,15 @@
 
   const COLOR_MAP = {
     0: "⬜️",
-    1: "🟦",
+    1: "<span class='pulse'>🟦</span>",
     2: "🟩",
-    3: "🍎",
+    3: "<span class='pulse'>🍎</span>",
     4: "🟥",
   };
 
-  function drawBoard() {
+  function drawBoard(boardNum = 1) {
+    // const board = boardNum === 1 ? state1.board : board2;
+    const board = state1.board;
     let html = "";
     for (let r = 0; r < boardRows; r++) {
       html += "";
@@ -61,15 +92,19 @@
     }
     html += "\n";
     html += `tick: ${nTick}\n`;
+    html += `rows: ${boardRows} cols: ${boardCols}\n`;
     html += `length: ${nLength}\n`;
-    html += JSON.stringify(tailWipeQueue);
+    html += `head: ${JSON.stringify(state1.headPosition)}\n`;
+    // html += JSON.stringify(tailWipeQueue);
     html += "\n";
-    html += moves
+    html += state1.moves
       .slice()
       .reverse()
       .map((m) => JSON.stringify(m))
       .join("\n");
+
     game1.innerHTML = html;
+    // (boardNum === 1 ? game1 : game2).innerHTML = html;
   }
 
   function endGame() {
@@ -77,13 +112,15 @@
     alert("Game over!");
   }
 
-  function tick() {
-    let currentDir = moves[moves.length - 1].dir;
+  function immutableTick(boardstate, tickNum, moveset, tailQueue) {}
 
-    board[headPosition.r][headPosition.c] = 2;
-    tailWipeQueue.push({ ...headPosition });
+  function tick(state) {
+    let currentDir = state1.moves[state1.moves.length - 1].dir;
 
-    let newHeadPosition = { ...headPosition };
+    state.board[state.headPosition.r][state.headPosition.c] = 2;
+    state.tailWipeQueue.push({ ...state.headPosition });
+
+    let newHeadPosition = { ...state.headPosition };
 
     if (currentDir === "north") {
       newHeadPosition.r -= 1;
@@ -101,33 +138,34 @@
       newHeadPosition.c < 0 ||
       newHeadPosition.c >= boardCols;
 
-    const isCollision =
-      board[newHeadPosition.r][newHeadPosition.c] === 1 ||
-      board[newHeadPosition.r][newHeadPosition.c] === 2;
-
     if (isEdge) {
-      board[headPosition.r][headPosition.c] = 4;
+      state.board[state.headPosition.r][state.headPosition.c] = 4;
       drawBoard();
       setTimeout(endGame, 200);
       return;
     }
+
+    const isCollision =
+      state.board[newHeadPosition.r][newHeadPosition.c] === 1 ||
+      state.board[newHeadPosition.r][newHeadPosition.c] === 2;
     if (isCollision) {
-      board[newHeadPosition.r][newHeadPosition.c] = 4;
+      state.board[newHeadPosition.r][newHeadPosition.c] = 4;
       drawBoard();
       setTimeout(endGame, 200);
       return;
     }
 
-    headPosition = newHeadPosition;
+    state.headPosition = newHeadPosition;
 
-    const isEating = board[headPosition.r][headPosition.c] === 3;
+    const isEating =
+      state.board[state.headPosition.r][state.headPosition.c] === 3;
 
-    board[headPosition.r][headPosition.c] = 1;
+    state.board[state.headPosition.r][state.headPosition.c] = 1;
 
     if (!isEating && nTick > 2) {
-      let resetCoords = tailWipeQueue.shift();
+      let resetCoords = state.tailWipeQueue.shift();
       if (resetCoords) {
-        board[resetCoords.r][resetCoords.c] = 0;
+        state.board[resetCoords.r][resetCoords.c] = 0;
       }
     }
 
@@ -137,8 +175,13 @@
       do {
         const r = Math.floor(Math.random() * boardRows);
         const c = Math.floor(Math.random() * boardCols);
-        if (board[r][c] === 0) {
-          board[r][c] = 3;
+        if (state.board[r][c] === 0) {
+          state.board[r][c] = 3;
+          foodDrops.push({
+            r,
+            c,
+            tick: nTick,
+          });
           success = true;
         }
       } while (!success);
@@ -157,7 +200,7 @@
 
   addEventListener("keydown", (e) => {
     if (e.key in dirMap) {
-      const lastMove = moves[moves.length - 1];
+      const lastMove = state1.moves[state1.moves.length - 1];
       if (lastMove.tick === nTick) {
         return;
       }
@@ -179,16 +222,16 @@
       }
 
       const newMove = {
-        r: headPosition.r,
-        c: headPosition.c,
+        r: state1.headPosition.r,
+        c: state1.headPosition.c,
         dir: dirMap[e.key],
         tick: nTick,
       };
-      moves.push(newMove);
+      state1.moves.push(newMove);
       conn.send(JSON.stringify(newMove));
     }
   });
-  const tickLoop = setInterval(tick, 550);
+  const tickLoop = setInterval(() => tick(state1), 550);
 
   var conn;
   var log = document.getElementById("log");
