@@ -39,7 +39,7 @@
     }
   }
 
-  let boardCols = 10;
+  let boardCols = 20;
   let boardRows = 10;
 
   let state1 = new GameState({
@@ -81,7 +81,7 @@
     for (let r = 0; r < boardRows; r++) {
       html += "";
       for (let c = 0; c < boardCols; c++) {
-        html += ` ${COLOR_MAP[state.board[r][c]]}</td>`;
+        html += ` ${COLOR_MAP[state.board[r][c]]}`;
       }
       html += "\n";
     }
@@ -90,7 +90,6 @@
     html += `rows: ${boardRows} cols: ${boardCols}\n`;
     html += `length: ${state.nLength}\n`;
     html += `head: ${JSON.stringify(state1.headPos)}\n`;
-    // html += JSON.stringify(tailWipeQueue);
     html += "\n";
     html += state.moves
       .slice()
@@ -138,31 +137,28 @@
 
     const isEdge = newHeadPos.r < 0 || newHeadPos.r >= boardRows || newHeadPos.c < 0 || newHeadPos.c >= boardCols;
 
+    const isCollision =
+      (!isEdge && state.board.at(newHeadPos.r)?.at(newHeadPos.c) === 1) ||
+      state.board.at(newHeadPos.r)?.at(newHeadPos.c) === 2;
+
     if (isEdge) {
       state.board[state.headPos.r][state.headPos.c] = 4;
-      drawBoard(state);
       setTimeout(endGame, 200);
-      return;
-    }
-
-    const isCollision = state.board[newHeadPos.r][newHeadPos.c] === 1 || state.board[newHeadPos.r][newHeadPos.c] === 2;
-    if (isCollision) {
+    } else if (isCollision) {
       state.board[newHeadPos.r][newHeadPos.c] = 4;
-      drawBoard(state);
       setTimeout(endGame, 200);
-      return;
-    }
+    } else {
+      state.headPos = newHeadPos;
 
-    state.headPos = newHeadPos;
+      const isEating = state.board[state.headPos.r][state.headPos.c] === 3;
 
-    const isEating = state.board[state.headPos.r][state.headPos.c] === 3;
+      state.board[state.headPos.r][state.headPos.c] = 1;
 
-    state.board[state.headPos.r][state.headPos.c] = 1;
-
-    if (!isEating && state.tick > 2) {
-      let resetCoords = state.tailWipeQueue.shift();
-      if (resetCoords) {
-        state.board[resetCoords.r][resetCoords.c] = 0;
+      if (!isEating && state.tick > 2) {
+        let resetCoords = state.tailWipeQueue.shift();
+        if (resetCoords) {
+          state.board[resetCoords.r][resetCoords.c] = 0;
+        }
       }
     }
 
@@ -179,8 +175,12 @@
   const OPPOSITE_MAP = {
     north: "south",
     south: "north",
-    // east: "west",
-    // west: "east",
+    east: "west",
+    west: "east",
+  };
+  const MIRROR_MAP = {
+    north: "south",
+    south: "north",
   };
 
   addEventListener("keydown", (e) => {
@@ -211,7 +211,7 @@
       conn.send(
         JSON.stringify({
           ...newMove,
-          dir: OPPOSITE_MAP[newMove.dir] ?? newMove.dir,
+          dir: MIRROR_MAP[newMove.dir] ?? newMove.dir,
         })
       );
     }
@@ -240,7 +240,7 @@
         }
       } while (!success);
     }
-  }, 350);
+  }, 1000);
 
   let conn;
   let log = document.getElementById("log");
