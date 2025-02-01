@@ -8,54 +8,57 @@
     }
   }
 </style>
-<body
-  style="
-    overflow: hidden;
-    height: 100vh;
-    width: 100vw;
-    display: flex;
-    gap: 2rem;
-  "
->
-  <pre id="game1" style="max-width: 50%"></pre>
+<body style="overflow: hidden; height: 100vh; width: 100vw">
+  <div style="overflow: hidden; height: 100vh; width: 100vw; display: flex; gap: 2rem">
+    <pre id="game1" style="max-width: 50%"></pre>
+    <pre id="game2" style="max-width: 50%"></pre>
+    <pre id="game3" style="max-width: 50%"></pre>
+  </div>
   <!-- <pre id="game2" style="flex: 1"></pre> -->
   <pre id="log" style="max-width: 50%"></pre>
-  <!-- <pre id="game2"></pre> -->
 </body>
 
 <script>
   class GameState {
-    constructor({ board, moves, headPosition, nLength, tailWipeQueue }) {
-      this.board = board;
-      this.moves = moves;
-      this.headPosition = headPosition;
-      this.nLength = nLength;
-      this.tailWipeQueue = tailWipeQueue;
+    constructor({ target, name }) {
+      this.board = new Array(boardRows).fill(null).map(() => new Array(boardCols).fill(0));
+      this.moves = [
+        {
+          r: 5,
+          c: 5,
+          dir: "east",
+          tick: 1,
+        },
+      ];
+      this.headPos = { r: 5, c: 5 };
+      this.nLength = 2;
+      this.tailWipeQueue = [];
+      this.target = target;
+      this.name = name;
+      this.tick = 1;
     }
   }
 
-  let boardCols = 20;
+  let boardCols = 10;
   let boardRows = 10;
 
   let state1 = new GameState({
-    board: new Array(boardRows)
-      .fill(null)
-      .map(() => new Array(boardCols).fill(0)),
-    moves: [
-      {
-        r: 5,
-        c: 5,
-        dir: "east",
-        tick: 1,
-      },
-    ],
-    nLength: 2,
-    tailWipeQueue: [],
-    headPosition: { r: 5, c: 5 },
+    name: "Local Game",
+    target: "game1",
+  });
+
+  let state2 = new GameState({
+    name: "Remote Game",
+    target: "game2",
+  });
+
+  let state2Optimistic = new GameState({
+    name: "Remote Game (Optimistic)",
+    target: "game3",
   });
 
   let foodDrops = [];
-  let nTick = 1;
+  let localTick = 1;
   let nLength = 2;
 
   /**
@@ -65,12 +68,6 @@
    * 3 = food
    */
 
-  let board2 = new Array(boardCols)
-    .fill(null)
-    .map(() => new Array(boardRows).fill(0));
-
-  const game1 = document.getElementById("game1");
-
   const COLOR_MAP = {
     0: "⬜️",
     1: "<span class='pulse'>🟦</span>",
@@ -79,32 +76,29 @@
     4: "🟥",
   };
 
-  function drawBoard(boardNum = 1) {
-    // const board = boardNum === 1 ? state1.board : board2;
-    const board = state1.board;
+  function drawBoard(state) {
     let html = "";
     for (let r = 0; r < boardRows; r++) {
       html += "";
       for (let c = 0; c < boardCols; c++) {
-        html += ` ${COLOR_MAP[board[r][c]]}</td>`;
+        html += ` ${COLOR_MAP[state.board[r][c]]}</td>`;
       }
       html += "\n";
     }
-    html += "\n";
-    html += `tick: ${nTick}\n`;
+    html += `\n${state.name}\n`;
+    html += `tick: ${localTick}\n`;
     html += `rows: ${boardRows} cols: ${boardCols}\n`;
-    html += `length: ${nLength}\n`;
-    html += `head: ${JSON.stringify(state1.headPosition)}\n`;
+    html += `length: ${state.nLength}\n`;
+    html += `head: ${JSON.stringify(state1.headPos)}\n`;
     // html += JSON.stringify(tailWipeQueue);
     html += "\n";
-    html += state1.moves
+    html += state.moves
       .slice()
       .reverse()
       .map((m) => JSON.stringify(m))
       .join("\n");
 
-    game1.innerHTML = html;
-    // (boardNum === 1 ? game1 : game2).innerHTML = html;
+    document.getElementById(state.target).innerHTML = html;
   }
 
   function endGame() {
@@ -112,132 +106,147 @@
     alert("Game over!");
   }
 
-  function immutableTick(boardstate, tickNum, moveset, tailQueue) {}
+  function runNTicks(state, nTicks) {
+    for (let i = 0; i < nTicks; i++) {
+      tick(state);
+    }
+  }
 
   function tick(state) {
-    let currentDir = state1.moves[state1.moves.length - 1].dir;
+    const pastTicks = state.moves.filter((m) => m.tick <= state.tick);
+    if (state.name === "Remote Game") {
+      console.log("Tick", state.tick);
+      console.log(state.board.map((r) => r.map((c) => c.toString(2)).join("")).join("\n"));
+    }
+    // alert(JSON.stringify(pastTicks));
+    let currentDir = pastTicks.at(-1)?.dir;
 
-    state.board[state.headPosition.r][state.headPosition.c] = 2;
-    state.tailWipeQueue.push({ ...state.headPosition });
+    state.board[state.headPos.r][state.headPos.c] = 2;
+    state.tailWipeQueue.push({ ...state.headPos });
 
-    let newHeadPosition = { ...state.headPosition };
+    let newHeadPos = { ...state.headPos };
 
     if (currentDir === "north") {
-      newHeadPosition.r -= 1;
+      newHeadPos.r -= 1;
     } else if (currentDir === "south") {
-      newHeadPosition.r += 1;
+      newHeadPos.r += 1;
     } else if (currentDir === "east") {
-      newHeadPosition.c += 1;
+      newHeadPos.c += 1;
     } else if (currentDir === "west") {
-      newHeadPosition.c -= 1;
+      newHeadPos.c -= 1;
     }
 
-    const isEdge =
-      newHeadPosition.r < 0 ||
-      newHeadPosition.r >= boardRows ||
-      newHeadPosition.c < 0 ||
-      newHeadPosition.c >= boardCols;
+    const isEdge = newHeadPos.r < 0 || newHeadPos.r >= boardRows || newHeadPos.c < 0 || newHeadPos.c >= boardCols;
 
     if (isEdge) {
-      state.board[state.headPosition.r][state.headPosition.c] = 4;
-      drawBoard();
+      state.board[state.headPos.r][state.headPos.c] = 4;
+      drawBoard(state);
       setTimeout(endGame, 200);
       return;
     }
 
-    const isCollision =
-      state.board[newHeadPosition.r][newHeadPosition.c] === 1 ||
-      state.board[newHeadPosition.r][newHeadPosition.c] === 2;
+    const isCollision = state.board[newHeadPos.r][newHeadPos.c] === 1 || state.board[newHeadPos.r][newHeadPos.c] === 2;
     if (isCollision) {
-      state.board[newHeadPosition.r][newHeadPosition.c] = 4;
-      drawBoard();
+      state.board[newHeadPos.r][newHeadPos.c] = 4;
+      drawBoard(state);
       setTimeout(endGame, 200);
       return;
     }
 
-    state.headPosition = newHeadPosition;
+    state.headPos = newHeadPos;
 
-    const isEating =
-      state.board[state.headPosition.r][state.headPosition.c] === 3;
+    const isEating = state.board[state.headPos.r][state.headPos.c] === 3;
 
-    state.board[state.headPosition.r][state.headPosition.c] = 1;
+    state.board[state.headPos.r][state.headPos.c] = 1;
 
-    if (!isEating && nTick > 2) {
+    if (!isEating && state.tick > 2) {
       let resetCoords = state.tailWipeQueue.shift();
       if (resetCoords) {
         state.board[resetCoords.r][resetCoords.c] = 0;
       }
     }
 
-    if (nTick % 10 === 0) {
-      // spawn food
-      let success = false;
-      do {
-        const r = Math.floor(Math.random() * boardRows);
-        const c = Math.floor(Math.random() * boardCols);
-        if (state.board[r][c] === 0) {
-          state.board[r][c] = 3;
-          foodDrops.push({
-            r,
-            c,
-            tick: nTick,
-          });
-          success = true;
-        }
-      } while (!success);
-    }
-
-    drawBoard();
-    nTick++;
+    drawBoard(state);
+    state.tick++;
   }
 
-  const dirMap = {
+  const DIR_MAP = {
     ArrowUp: "north",
     ArrowDown: "south",
     ArrowLeft: "west",
     ArrowRight: "east",
   };
+  const OPPOSITE_MAP = {
+    north: "south",
+    south: "north",
+    // east: "west",
+    // west: "east",
+  };
 
   addEventListener("keydown", (e) => {
-    if (e.key in dirMap) {
+    if (e.key in DIR_MAP) {
       const lastMove = state1.moves[state1.moves.length - 1];
-      if (lastMove.tick === nTick) {
+      if (lastMove.tick === localTick) {
         return;
       }
 
       const currentDir = lastMove.dir;
 
-      const newDir = dirMap[e.key];
+      const newDir = DIR_MAP[e.key];
       if (currentDir === newDir) {
         return;
       }
 
-      const is180 =
-        (currentDir === "north" && newDir === "south") ||
-        (currentDir === "south" && newDir === "north") ||
-        (currentDir === "east" && newDir === "west") ||
-        (currentDir === "west" && newDir === "east");
-      if (is180) {
+      if (newDir === OPPOSITE_MAP[currentDir]) {
         return;
       }
 
       const newMove = {
-        r: state1.headPosition.r,
-        c: state1.headPosition.c,
-        dir: dirMap[e.key],
-        tick: nTick,
+        r: state1.headPos.r,
+        c: state1.headPos.c,
+        dir: DIR_MAP[e.key],
+        tick: localTick,
       };
       state1.moves.push(newMove);
-      conn.send(JSON.stringify(newMove));
+      conn.send(
+        JSON.stringify({
+          ...newMove,
+          dir: OPPOSITE_MAP[newMove.dir] ?? newMove.dir,
+        })
+      );
     }
   });
-  const tickLoop = setInterval(() => tick(state1), 550);
 
-  var conn;
-  var log = document.getElementById("log");
+  const tickLoop = setInterval(() => {
+    tick(state1, localTick);
+    tick(state2Optimistic, localTick);
+    localTick++;
+
+    if (localTick % 10 === 0) {
+      // spawn food
+      let success = false;
+      do {
+        const r = Math.floor(Math.random() * boardRows);
+        const c = Math.floor(Math.random() * boardCols);
+        if (state1.board[r][c] === 0 && state2.board[r][c] === 0) {
+          state1.board[r][c] = 3;
+          state2.board[r][c] = 3;
+          foodDrops.push({
+            r,
+            c,
+            tick: localTick,
+          });
+          success = true;
+        }
+      } while (!success);
+    }
+  }, 550);
+
+  let conn;
+  let log = document.getElementById("log");
 
   function appendLog(item) {
-    var doScroll = log.scrollTop > log.scrollHeight - log.clientHeight - 1;
+    let doScroll = log.scrollTop > log.scrollHeight - log.clientHeight - 1;
     log.appendChild(item);
     if (doScroll) {
       log.scrollTop = log.scrollHeight - log.clientHeight;
@@ -247,20 +256,31 @@
   if (window["WebSocket"]) {
     conn = new WebSocket("ws://" + document.location.host + "/ws");
     conn.onclose = function (evt) {
-      var item = document.createElement("div");
+      let item = document.createElement("div");
       item.innerHTML = "<b>Connection closed.</b>";
       appendLog(item);
     };
     conn.onmessage = function (evt) {
-      var messages = evt.data.split("\n");
-      for (var i = 0; i < messages.length; i++) {
-        var item = document.createElement("div");
+      let messages = evt.data.split("\n");
+      for (let i = 0; i < messages.length; i++) {
+        let item = document.createElement("div");
         item.innerText = messages[i];
         appendLog(item);
+        const payload = JSON.parse(messages[i]);
+        state2.moves.push(payload);
+        const newMaxTick = state2.moves.at(-1).tick;
+        const oldMaxTick = state2.moves.at(-2).tick;
+        const tickDiff = newMaxTick - oldMaxTick;
+        runNTicks(state2, tickDiff);
+        const liveTickDiff = localTick - newMaxTick;
+        state2Optimistic = structuredClone(state2);
+        state2Optimistic.name = "Remote Game (Optimistic)";
+        state2Optimistic.target = "game3";
+        runNTicks(state2, liveTickDiff, newMaxTick);
       }
     };
   } else {
-    var item = document.createElement("div");
+    let item = document.createElement("div");
     item.innerHTML = "<b>Your browser does not support WebSockets.</b>";
     appendLog(item);
   }
