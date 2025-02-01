@@ -222,8 +222,8 @@
     tick(state2Optimistic, localTick);
     localTick++;
 
+    // TODO move spawn food to backend
     if (localTick % 10 === 0) {
-      // spawn food
       let success = false;
       do {
         const r = Math.floor(Math.random() * boardRows);
@@ -240,7 +240,7 @@
         }
       } while (!success);
     }
-  }, 550);
+  }, 350);
 
   let conn;
   let log = document.getElementById("log");
@@ -267,16 +267,26 @@
         item.innerText = messages[i];
         appendLog(item);
         const payload = JSON.parse(messages[i]);
+        // Add move to remote game state
         state2.moves.push(payload);
+
+        // figure out how many ticks between the last two moves
         const newMaxTick = state2.moves.at(-1).tick;
         const oldMaxTick = state2.moves.at(-2).tick;
         const tickDiff = newMaxTick - oldMaxTick;
+
+        // fast forward the remote game state to the new max tick
         runNTicks(state2, tickDiff);
-        const liveTickDiff = localTick - newMaxTick;
+
+        // rollback optimistc game state to the new confirmed remote state
         state2Optimistic = structuredClone(state2);
         state2Optimistic.name = "Remote Game (Optimistic)";
         state2Optimistic.target = "game3";
-        runNTicks(state2, liveTickDiff, newMaxTick);
+
+        // figure out difference between local and new remote tick
+        const liveTickDiff = localTick - newMaxTick;
+        // fast forward optimistic game to local tick
+        runNTicks(state2Optimistic, liveTickDiff);
       }
     };
   } else {
