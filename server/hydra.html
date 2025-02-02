@@ -20,7 +20,7 @@
 
 <script>
   class GameState {
-    constructor({ target, name }) {
+    constructor({ target, name, isLocal }) {
       this.board = new Array(boardRows).fill(null).map(() => new Array(boardCols).fill(0));
       this.moves = [
         {
@@ -36,25 +36,30 @@
       this.target = target;
       this.name = name;
       this.tick = 1;
+      this.isLocal = isLocal;
     }
   }
 
   let boardCols = 20;
   let boardRows = 10;
+  let roomId = window.location.pathname.split("/")[2];
 
   let state1 = new GameState({
-    name: "Local Game",
+    name: `Local Game ${roomId}`,
     target: "game1",
+    isLocal: true,
   });
 
   let state2 = new GameState({
-    name: "Remote Game",
+    name: `Remote Game ${roomId}`,
     target: "game2",
+    isLocal: false,
   });
 
   let state2Optimistic = new GameState({
-    name: "Remote Game (Optimistic)",
+    name: `Remote Game (Optimistic) ${roomId}`,
     target: "game3",
+    isLocal: false,
   });
 
   let foodDrops = [];
@@ -100,9 +105,9 @@
     document.getElementById(state.target).innerHTML = html;
   }
 
-  function endGame() {
+  function endGame(localWin) {
     clearInterval(tickLoop);
-    alert("Game over!");
+    alert("Game over! You " + (localWin ? "won" : "lost"));
   }
 
   function runNTicks(state, nTicks) {
@@ -143,10 +148,10 @@
 
     if (isEdge) {
       state.board[state.headPos.r][state.headPos.c] = 4;
-      setTimeout(endGame, 200);
+      setTimeout(() => endGame(!state.isLocal), 200);
     } else if (isCollision) {
       state.board[newHeadPos.r][newHeadPos.c] = 4;
-      setTimeout(endGame, 200);
+      setTimeout(() => endGame(!state.isLocal), 200);
     } else {
       state.headPos = newHeadPos;
 
@@ -211,7 +216,7 @@
       conn.send(
         JSON.stringify({
           ...newMove,
-          dir: MIRROR_MAP[newMove.dir] ?? newMove.dir,
+          // dir: MIRROR_MAP[newMove.dir] ?? newMove.dir,
         })
       );
     }
@@ -240,7 +245,7 @@
         }
       } while (!success);
     }
-  }, 1000);
+  }, 400);
 
   let conn;
   let log = document.getElementById("log");
@@ -254,13 +259,13 @@
   }
 
   if (window["WebSocket"]) {
-    conn = new WebSocket("ws://" + document.location.host + "/ws");
-    conn.onclose = function (evt) {
+    conn = new WebSocket("ws://" + document.location.host + "/room/ws/" + roomId);
+    conn.onclose = (evt) => {
       let item = document.createElement("div");
       item.innerHTML = "<b>Connection closed.</b>";
       appendLog(item);
     };
-    conn.onmessage = function (evt) {
+    conn.onmessage = (evt) => {
       let messages = evt.data.split("\n");
       for (let i = 0; i < messages.length; i++) {
         let item = document.createElement("div");

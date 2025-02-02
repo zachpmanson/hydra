@@ -41,6 +41,8 @@ var upgrader = websocket.Upgrader{
 type Client struct {
 	hub *Hub
 
+	roomId string
+
 	// The websocket connection.
 	conn *websocket.Conn
 
@@ -70,7 +72,7 @@ func (c *Client) readPump() {
 			break
 		}
 		message = bytes.TrimSpace(bytes.Replace(message, newline, space, -1))
-		c.hub.broadcast <- message
+		c.hub.broadcast <- RoomBytes{RoomId: c.roomId, Bytes: message, SourceClientAddr: c.conn.RemoteAddr().String()}
 	}
 }
 
@@ -123,11 +125,12 @@ func (c *Client) writePump() {
 // serveWs handles websocket requests from the peer.
 func serveWs(hub *Hub, w http.ResponseWriter, r *http.Request) {
 	conn, err := upgrader.Upgrade(w, r, nil)
+	roomId := r.PathValue("roomId")
 	if err != nil {
 		log.Println(err)
 		return
 	}
-	client := &Client{hub: hub, conn: conn, send: make(chan []byte, 256)}
+	client := &Client{hub: hub, conn: conn, send: make(chan []byte, 256), roomId: roomId}
 	client.hub.register <- client
 
 	// Allow collection of memory referenced by the caller by doing all work in

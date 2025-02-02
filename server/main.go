@@ -23,6 +23,7 @@ func serveHome(w http.ResponseWriter, r *http.Request) {
 
 
 func serveHydra(w http.ResponseWriter, r *http.Request) {
+	
 	log.Println(r.URL)
 	if r.Method != http.MethodGet {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -39,8 +40,8 @@ func main() {
 	hub := newHub()
 	go hub.run()
 	http.HandleFunc("/logs", serveHome)
-	http.HandleFunc("/", serveHydra)
-	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc("/room/{roomId}", serveHydra)
+	http.HandleFunc("/room/ws/{roomId}", func(w http.ResponseWriter, r *http.Request) {
 		serveWs(hub, w, r)
 	})
 	err := http.ListenAndServe(*addr, nil)
