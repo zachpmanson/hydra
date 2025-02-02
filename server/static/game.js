@@ -27,13 +27,6 @@ let state2Optimistic = new GameState({
 let foodDrops = [];
 let localTick = 1;
 
-/**
- * 0 = empty
- * 1 = head
- * 2 = tail
- * 3 = food
- */
-
 const COLOR_MAP = {
   0: "⬜️",
   1: "<span class='pulse'>🟦</span>",
@@ -168,13 +161,17 @@ function tick(state) {
 
     const isEating = state.board[state.headPos.r][state.headPos.c] === 3;
     if (isEating) {
+      // if any screen eats it, remove it from local game
       if (state1.board[state.headPos.r][state.headPos.c] === 3) {
         state1.board[state.headPos.r][state.headPos.c] = 0;
       }
 
+      // if any real player eats it, remove it from remote screen
       if (!state.isOptimistic && state2.board[state.headPos.r][state.headPos.c] === 3) {
         state2.board[state.headPos.r][state.headPos.c] = 0;
       }
+
+      // if optimistic player eats it, remove it from optimistic screen
       if (state2Optimistic.board[state.headPos.r][state.headPos.c] === 3) {
         state2Optimistic.board[state.headPos.r][state.headPos.c] = 0;
       }
