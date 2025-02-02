@@ -1,302 +1,63 @@
+<!DOCTYPE html>
+
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" data-next-head="" />
+</head>
+<body>
+  <!-- <body style="overflow: hidden; height: 100vh; width: 100vw"> -->
+  <div style="overflow: hidden; display: flex; gap: 1rem; flex-direction: column; align-items: center">
+    <p class="pulse" id="lobby">Waiting for opponent to join...</p>
+    <pre id="game1" class="game"></pre>
+    <table>
+      <tr>
+        <td></td>
+        <td><button id="up-button">⬆️</button></td>
+        <td></td>
+      </tr>
+
+      <tr>
+        <td><button id="left-button">⬅️</button></td>
+        <td></td>
+        <td><button id="right-button">➡️</button></td>
+      </tr>
+      <tr>
+        <td></td>
+        <td><button id="down-button">⬇️</button></td>
+        <td></td>
+      </tr>
+    </table>
+    <pre id="game2" class="game" style="display: none"></pre>
+    <pre id="game3" class="game"></pre>
+  </div>
+  <!-- <pre id="game2" style="flex: 1"></pre> -->
+  <pre id="log" style="max-width: 50%"></pre>
+</body>
+
+<script type="module" src="/static/game.js"></script>
 <style>
+  * {
+    touch-action: manipulation;
+  }
   .pulse {
     animation: pulse 2s infinite;
   }
+  button {
+    height: 3rem;
+    width: 3rem;
+  }
+  pre.game {
+    font-size: 0.3rem;
+  }
+
+  table {
+    width: 10rem;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
   @keyframes pulse {
     50% {
       opacity: 0.5;
     }
   }
 </style>
-<body style="overflow: hidden; height: 100vh; width: 100vw">
-  <div style="overflow: hidden; height: 100vh; width: 100vw; display: flex; gap: 2rem">
-    <pre id="game1" style="max-width: 50%"></pre>
-    <pre id="game2" style="max-width: 50%"></pre>
-    <pre id="game3" style="max-width: 50%"></pre>
-  </div>
-  <!-- <pre id="game2" style="flex: 1"></pre> -->
-  <pre id="log" style="max-width: 50%"></pre>
-</body>
-
-<script>
-  class GameState {
-    constructor({ target, name, isLocal }) {
-      this.board = new Array(boardRows).fill(null).map(() => new Array(boardCols).fill(0));
-      this.moves = [
-        {
-          r: 5,
-          c: 5,
-          dir: "east",
-          tick: 1,
-        },
-      ];
-      this.headPos = { r: 5, c: 5 };
-      this.nLength = 2;
-      this.tailWipeQueue = [];
-      this.target = target;
-      this.name = name;
-      this.tick = 1;
-      this.isLocal = isLocal;
-    }
-  }
-
-  let boardCols = 20;
-  let boardRows = 10;
-  let roomId = window.location.pathname.split("/")[2];
-
-  let state1 = new GameState({
-    name: `Local Game ${roomId}`,
-    target: "game1",
-    isLocal: true,
-  });
-
-  let state2 = new GameState({
-    name: `Remote Game ${roomId}`,
-    target: "game2",
-    isLocal: false,
-  });
-
-  let state2Optimistic = new GameState({
-    name: `Remote Game (Optimistic) ${roomId}`,
-    target: "game3",
-    isLocal: false,
-  });
-
-  let foodDrops = [];
-  let localTick = 1;
-  let nLength = 2;
-
-  /**
-   * 0 = empty
-   * 1 = head
-   * 2 = tail
-   * 3 = food
-   */
-
-  const COLOR_MAP = {
-    0: "⬜️",
-    1: "<span class='pulse'>🟦</span>",
-    2: "🟩",
-    3: "<span class='pulse'>🍎</span>",
-    4: "🟥",
-  };
-
-  function drawBoard(state) {
-    let html = "";
-    for (let r = 0; r < boardRows; r++) {
-      html += "";
-      for (let c = 0; c < boardCols; c++) {
-        html += ` ${COLOR_MAP[state.board[r][c]]}`;
-      }
-      html += "\n";
-    }
-    html += `\n${state.name}\n`;
-    html += `tick: ${localTick}\n`;
-    html += `rows: ${boardRows} cols: ${boardCols}\n`;
-    html += `length: ${state.nLength}\n`;
-    html += `head: ${JSON.stringify(state1.headPos)}\n`;
-    html += "\n";
-    html += state.moves
-      .slice()
-      .reverse()
-      .map((m) => JSON.stringify(m))
-      .join("\n");
-
-    document.getElementById(state.target).innerHTML = html;
-  }
-
-  function endGame(localWin) {
-    clearInterval(tickLoop);
-    alert("Game over! You " + (localWin ? "won" : "lost"));
-  }
-
-  function runNTicks(state, nTicks) {
-    for (let i = 0; i < nTicks; i++) {
-      tick(state);
-    }
-  }
-
-  function tick(state) {
-    const pastTicks = state.moves.filter((m) => m.tick <= state.tick);
-    if (state.name === "Remote Game") {
-      console.log("Tick", state.tick);
-      console.log(state.board.map((r) => r.map((c) => c.toString(2)).join("")).join("\n"));
-    }
-    // alert(JSON.stringify(pastTicks));
-    let currentDir = pastTicks.at(-1)?.dir;
-
-    state.board[state.headPos.r][state.headPos.c] = 2;
-    state.tailWipeQueue.push({ ...state.headPos });
-
-    let newHeadPos = { ...state.headPos };
-
-    if (currentDir === "north") {
-      newHeadPos.r -= 1;
-    } else if (currentDir === "south") {
-      newHeadPos.r += 1;
-    } else if (currentDir === "east") {
-      newHeadPos.c += 1;
-    } else if (currentDir === "west") {
-      newHeadPos.c -= 1;
-    }
-
-    const isEdge = newHeadPos.r < 0 || newHeadPos.r >= boardRows || newHeadPos.c < 0 || newHeadPos.c >= boardCols;
-
-    const isCollision =
-      (!isEdge && state.board.at(newHeadPos.r)?.at(newHeadPos.c) === 1) ||
-      state.board.at(newHeadPos.r)?.at(newHeadPos.c) === 2;
-
-    if (isEdge) {
-      state.board[state.headPos.r][state.headPos.c] = 4;
-      setTimeout(() => endGame(!state.isLocal), 200);
-    } else if (isCollision) {
-      state.board[newHeadPos.r][newHeadPos.c] = 4;
-      setTimeout(() => endGame(!state.isLocal), 200);
-    } else {
-      state.headPos = newHeadPos;
-
-      const isEating = state.board[state.headPos.r][state.headPos.c] === 3;
-
-      state.board[state.headPos.r][state.headPos.c] = 1;
-
-      if (!isEating && state.tick > 2) {
-        let resetCoords = state.tailWipeQueue.shift();
-        if (resetCoords) {
-          state.board[resetCoords.r][resetCoords.c] = 0;
-        }
-      }
-    }
-
-    drawBoard(state);
-    state.tick++;
-  }
-
-  const DIR_MAP = {
-    ArrowUp: "north",
-    ArrowDown: "south",
-    ArrowLeft: "west",
-    ArrowRight: "east",
-  };
-  const OPPOSITE_MAP = {
-    north: "south",
-    south: "north",
-    east: "west",
-    west: "east",
-  };
-  const MIRROR_MAP = {
-    north: "south",
-    south: "north",
-  };
-
-  addEventListener("keydown", (e) => {
-    if (e.key in DIR_MAP) {
-      const lastMove = state1.moves[state1.moves.length - 1];
-      if (lastMove.tick === localTick) {
-        return;
-      }
-
-      const currentDir = lastMove.dir;
-
-      const newDir = DIR_MAP[e.key];
-      if (currentDir === newDir) {
-        return;
-      }
-
-      if (newDir === OPPOSITE_MAP[currentDir]) {
-        return;
-      }
-
-      const newMove = {
-        r: state1.headPos.r,
-        c: state1.headPos.c,
-        dir: DIR_MAP[e.key],
-        tick: localTick,
-      };
-      state1.moves.push(newMove);
-      conn.send(
-        JSON.stringify({
-          ...newMove,
-          // dir: MIRROR_MAP[newMove.dir] ?? newMove.dir,
-        })
-      );
-    }
-  });
-
-  const tickLoop = setInterval(() => {
-    tick(state1, localTick);
-    tick(state2Optimistic, localTick);
-    localTick++;
-
-    // TODO move spawn food to backend
-    if (localTick % 10 === 0) {
-      let success = false;
-      do {
-        const r = Math.floor(Math.random() * boardRows);
-        const c = Math.floor(Math.random() * boardCols);
-        if (state1.board[r][c] === 0 && state2.board[r][c] === 0) {
-          state1.board[r][c] = 3;
-          state2.board[r][c] = 3;
-          foodDrops.push({
-            r,
-            c,
-            tick: localTick,
-          });
-          success = true;
-        }
-      } while (!success);
-    }
-  }, 400);
-
-  let conn;
-  let log = document.getElementById("log");
-
-  function appendLog(item) {
-    let doScroll = log.scrollTop > log.scrollHeight - log.clientHeight - 1;
-    log.appendChild(item);
-    if (doScroll) {
-      log.scrollTop = log.scrollHeight - log.clientHeight;
-    }
-  }
-
-  if (window["WebSocket"]) {
-    conn = new WebSocket("ws://" + document.location.host + "/room/ws/" + roomId);
-    conn.onclose = (evt) => {
-      let item = document.createElement("div");
-      item.innerHTML = "<b>Connection closed.</b>";
-      appendLog(item);
-    };
-    conn.onmessage = (evt) => {
-      let messages = evt.data.split("\n");
-      for (let i = 0; i < messages.length; i++) {
-        let item = document.createElement("div");
-        item.innerText = messages[i];
-        appendLog(item);
-        const payload = JSON.parse(messages[i]);
-        // Add move to remote game state
-        state2.moves.push(payload);
-
-        // figure out how many ticks between the last two moves
-        const newMaxTick = state2.moves.at(-1).tick;
-        const oldMaxTick = state2.moves.at(-2).tick;
-        const tickDiff = newMaxTick - oldMaxTick;
-
-        // fast forward the remote game state to the new max tick
-        runNTicks(state2, tickDiff);
-
-        // rollback optimistc game state to the new confirmed remote state
-        state2Optimistic = structuredClone(state2);
-        state2Optimistic.name = "Remote Game (Optimistic)";
-        state2Optimistic.target = "game3";
-
-        // figure out difference between local and new remote tick
-        const liveTickDiff = localTick - newMaxTick;
-        // fast forward optimistic game to local tick
-        runNTicks(state2Optimistic, liveTickDiff);
-      }
-    };
-  } else {
-    let item = document.createElement("div");
-    item.innerHTML = "<b>Your browser does not support WebSockets.</b>";
-    appendLog(item);
-  }
-</script>

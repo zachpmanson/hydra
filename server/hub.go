@@ -48,6 +48,7 @@ func (h *Hub) run() {
 			h.clients[client] = true
 		case client := <-h.unregister:
 			if _, ok := h.clients[client]; ok {
+				log.Println("Unregistering client", client.conn.RemoteAddr(), "from room", client.roomId)
 				delete(h.clients, client)
 				close(client.send)
 			}
