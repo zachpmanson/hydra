@@ -25,8 +25,8 @@ if (window["WebSocket"]) {
   const pingStart = setInterval(() => {
     sendMsg({ type: "ready" });
   }, 1000);
-
-  conn = new WebSocket("ws://" + document.location.host + "/room/ws/" + roomId);
+  const socketPrefix = location.protocol === "https:" ? "wss" : "ws";
+  conn = new WebSocket(socketPrefix + "://" + document.location.host + "/room/ws/" + roomId);
   conn.onclose = (evt) => {
     let item = document.createElement("div");
     item.innerHTML = "<b>Connection closed.</b>";
