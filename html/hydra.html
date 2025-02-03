@@ -12,24 +12,24 @@
     <table>
       <tr>
         <td></td>
-        <td><button id="up-button">⬆️</button></td>
+        <td><button id="up-button" class="turn">&lt;</button></td>
         <td></td>
       </tr>
 
       <tr>
-        <td><button id="left-button">⬅️</button></td>
+        <td><button id="left-button">&lt;</button></td>
         <td></td>
-        <td><button id="right-button">➡️</button></td>
+        <td><button id="right-button">&gt;</button></td>
       </tr>
       <tr>
         <td></td>
-        <td><button id="down-button">⬇️</button></td>
+        <td><button id="down-button" class="turn">&gt;</button></td>
         <td></td>
       </tr>
     </table>
     <!-- <pre id="game2" class="game" style="display: none"></pre> -->
     <pre id="game3" class="game"></pre>
-    <!-- <pre id="game2" class="game"></pre> -->
+    <pre id="game2" class="game"></pre>
   </div>
   <!-- <pre id="game2" style="flex: 1"></pre> -->
   <pre id="log" style="max-width: 50%"></pre>
@@ -54,6 +54,19 @@
   .pulse {
     animation: pulse 2s infinite;
   }
+  button {
+    font-family: "Nokia", sans-serif;
+    background-color: var(--nokia-green);
+    border: black solid 2px;
+    border-radius: 4px;
+  }
+  button:hover {
+    background-color: black;
+    color: var(--nokia-green);
+  }
+  .turn {
+    transform: rotate(90deg);
+  }
   #start-button {
     padding: 1rem;
   }
@@ -73,7 +86,7 @@
 
   @keyframes pulse {
     50% {
-      opacity: 0.5;
+      opacity: 0.2;
     }
   }
 </style>
