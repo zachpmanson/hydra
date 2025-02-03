@@ -35,6 +35,17 @@
 
 <script type="module" src="/static/game.js"></script>
 <style>
+  @font-face {
+    font-family: "Nokia";
+    src: url("/static/nokiafc22.ttf");
+  }
+  :root {
+    --nokia-green: #a9df00;
+  }
+  body {
+    font-family: "Nokia", sans-serif;
+    background-color: var(--nokia-green);
+  }
   * {
     touch-action: manipulation;
   }
