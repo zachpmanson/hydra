@@ -26,7 +26,7 @@ func serveHome(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
-	http.ServeFile(w, r, "home.html")
+	http.ServeFile(w, r, "html/home.html")
 }
 
 
@@ -36,7 +36,7 @@ func serveHydra(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
-	http.ServeFile(w, r, "hydra.html")
+	http.ServeFile(w, r, "html/hydra.html")
 }
 
 
@@ -46,7 +46,7 @@ func main() {
 
 	hub := newHub()
 	go hub.run()
-	http.HandleFunc("/logs", serveHome)
+	http.HandleFunc("/", serveHome)
 	http.HandleFunc("/static/{path}", serveStatic)
 	http.HandleFunc("/room/{roomId}", serveHydra)
 	http.HandleFunc("/room/ws/{roomId}", func(w http.ResponseWriter, r *http.Request) {

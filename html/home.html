@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Hydra</title>
+  </head>
+  <body>
+    Welcome to Hydra!
+
+    <a id="new-game">New Game</a>
+  </body>
+  <script>
+    document.getElementById("new-game").attributes.href.value = `/room/${Math.random()}`;
+  </script>
+</html>
