@@ -118,7 +118,17 @@ function botMove(state) {
 
   for (let i = 0; i < neighbours.length; i++) {
     const option = neighbours[i];
-    if (option.r < 0 || option.r >= boardRows || option.c < 0 || option.c >= boardCols) {
+    if (
+      option.r < 0 ||
+      option.r >= boardRows ||
+      option.c < 0 ||
+      option.c >= boardCols ||
+      // add padding
+      option.r - 1 < 0 ||
+      option.r + 1 >= boardRows ||
+      option.c - 1 < 0 ||
+      option.c + 1 >= boardCols
+    ) {
       continue;
     }
 
