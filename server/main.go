@@ -41,9 +41,9 @@ func serveHydra(w http.ResponseWriter, r *http.Request) {
 
 
 func main() {
+	flag.Parse()
 	log.Println("Starting on " + *addr)
 
-	flag.Parse()
 	hub := newHub()
 	go hub.run()
 	http.HandleFunc("/logs", serveHome)
