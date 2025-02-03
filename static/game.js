@@ -141,13 +141,19 @@ function botMove(state) {
   }
 
   // if we get here, we have no good, moves
-  const decentMoves = neighbours.filter((n) => n.decent);
+  const decentMoves = neighbours.filter((n) => n.decent).map((n) => n.key);
   if (decentMoves.length === 0) {
     return;
   }
 
+  const pastSteps = state.moves.filter((m) => m.step <= state.step);
+  let currentDir = pastSteps.at(-1)?.dir;
+  if (decentMoves.map((m) => DIR_MAP[m]).includes(currentDir) && Math.random() < 0.85) {
+    return;
+  }
+
   const choice = decentMoves[Math.floor(Math.random() * decentMoves.length)];
-  handleKey(choice.key);
+  handleKey(choice);
 }
 
 let localTick = 0;
@@ -202,11 +208,6 @@ function runNTicks(state, nTicks) {
 
 function step(state) {
   const pastSteps = state.moves.filter((m) => m.step <= state.step);
-  if (state.name === "Remote Game") {
-    console.log("Tick", state.step);
-    console.log(state.board.map((r) => r.map((c) => c.toString(2)).join("")).join("\n"));
-  }
-  // alert(JSON.stringify(pastTicks));
   let currentDir = pastSteps.at(-1)?.dir;
 
   state.board[state.headPos.r][state.headPos.c] = 2;
