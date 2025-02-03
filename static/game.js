@@ -148,7 +148,7 @@ function botMove(state) {
 
   const pastSteps = state.moves.filter((m) => m.step <= state.step);
   let currentDir = pastSteps.at(-1)?.dir;
-  if (decentMoves.map((m) => DIR_MAP[m]).includes(currentDir) && Math.random() < 0.85) {
+  if (decentMoves.map((m) => DIR_MAP[m]).includes(currentDir) && Math.random() < 0.8) {
     return;
   }
 
