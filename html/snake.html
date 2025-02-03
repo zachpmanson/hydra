@@ -11,7 +11,7 @@
       r: 5,
       c: 5,
       dir: "east",
-      tick: 1,
+      step: 1,
     },
   ]; // { r,c, direction, nTick }[]
   let headPosition = { r: 5, c: 5 };
@@ -26,9 +26,7 @@
    * 2 = tail
    * 3 = food
    */
-  let board = new Array(boardCols)
-    .fill(null)
-    .map(() => new Array(boardRows).fill(0));
+  let board = new Array(boardCols).fill(null).map(() => new Array(boardRows).fill(0));
 
   const game1 = document.getElementById("game1");
 
@@ -50,7 +48,7 @@
       html += "\n";
     }
     html += "\n";
-    html += `tick: ${nTick}\n`;
+    html += `step: ${nTick}\n`;
     html += `length: ${nLength}\n`;
     // html += JSON.stringify(tailWipeQueue);
     html += "\n";
@@ -88,8 +86,7 @@
       newHeadPosition.c >= boardCols;
 
     const isCollision =
-      board[newHeadPosition.r][newHeadPosition.c] === 1 ||
-      board[newHeadPosition.r][newHeadPosition.c] === 2;
+      board[newHeadPosition.r][newHeadPosition.c] === 1 || board[newHeadPosition.r][newHeadPosition.c] === 2;
 
     if (isEdge) {
       board[headPosition.r][headPosition.c] = 4;
@@ -144,7 +141,7 @@
   addEventListener("keydown", (e) => {
     if (e.key in dirMap) {
       const lastMove = moves[moves.length - 1];
-      if (lastMove.tick === nTick) {
+      if (lastMove.step === nTick) {
         return;
       }
 
@@ -168,7 +165,7 @@
         r: headPosition.r,
         c: headPosition.c,
         dir: dirMap[e.key],
-        tick: nTick,
+        step: nTick,
       });
     }
   });

@@ -21,10 +21,18 @@ export function sendMsg(msg) {
   conn.send(JSON.stringify(msg));
 }
 
-if (window["WebSocket"]) {
-  const pingStart = setInterval(() => {
+let pingReady;
+const startButton = document.getElementById("start-button");
+function startReady() {
+  setGameStatus("ready");
+  pingReady = setInterval(() => {
     sendMsg({ type: "ready" });
   }, 1000);
+  startButton.style.display = "none";
+}
+startButton.addEventListener("click", startReady);
+
+if (window["WebSocket"]) {
   const socketPrefix = location.protocol === "https:" ? "wss" : "ws";
   conn = new WebSocket(socketPrefix + "://" + document.location.host + "/room/ws/" + roomId);
   conn.onclose = (evt) => {
@@ -44,12 +52,14 @@ if (window["WebSocket"]) {
 
       switch (type) {
         case "move": {
-          reconcileRemoteState(payload);
+          if (gameStatus === "playing") {
+            reconcileRemoteState(payload);
+          }
           break;
         }
         case "ready": {
           if (gameStatus === "ready") {
-            clearInterval(pingStart);
+            clearInterval(pingReady);
             sendMsg({ type: "ready" });
             setGameStatus("playing");
             startGame();
@@ -58,8 +68,10 @@ if (window["WebSocket"]) {
           break;
         }
         case "lost": {
-          setGameStatus("ended");
-          endGame(true, true);
+          if (gameStatus === "playing") {
+            setGameStatus("ended");
+            endGame(true, true);
+          }
           break;
         }
         case "food": {

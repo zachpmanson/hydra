@@ -7,6 +7,7 @@
   <!-- <body style="overflow: hidden; height: 100vh; width: 100vw"> -->
   <div style="overflow: hidden; display: flex; gap: 1rem; flex-direction: column; align-items: center">
     <p class="pulse" id="lobby">Waiting for opponent to join...</p>
+    <button id="start-button">Ready?</button>
     <pre id="game1" class="game"></pre>
     <table>
       <tr>
@@ -26,8 +27,9 @@
         <td></td>
       </tr>
     </table>
-    <pre id="game2" class="game" style="display: none"></pre>
+    <!-- <pre id="game2" class="game" style="display: none"></pre> -->
     <pre id="game3" class="game"></pre>
+    <!-- <pre id="game2" class="game"></pre> -->
   </div>
   <!-- <pre id="game2" style="flex: 1"></pre> -->
   <pre id="log" style="max-width: 50%"></pre>
@@ -52,12 +54,15 @@
   .pulse {
     animation: pulse 2s infinite;
   }
-  button {
+  #start-button {
+    padding: 1rem;
+  }
+  table button {
     height: 3rem;
     width: 3rem;
   }
   pre.game {
-    font-size: 0.3rem;
+    font-size: 0.35rem;
   }
 
   table {

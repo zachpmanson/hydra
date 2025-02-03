@@ -2,7 +2,7 @@
 
 export const boardCols = 40;
 export const boardRows = 30;
-export let gameStatus = "ready";
+export let gameStatus = "lobby";
 
 export function setGameStatus(newStatus) {
   gameStatus = newStatus;
@@ -23,7 +23,7 @@ export class GameState {
         r: 5,
         c: 5,
         dir: "east",
-        tick: 1,
+        step: 1,
       },
     ];
     this.headPos = { r: 5, c: 5 };
@@ -31,7 +31,7 @@ export class GameState {
     this.tailWipeQueue = [];
     this.target = target;
     this.name = name;
-    this.tick = 1;
+    this.step = 1;
     this.isLocal = isLocal;
     this.isOptimistic = isOptimistic;
   }
