@@ -23,16 +23,23 @@ export function sendMsg(msg) {
 
 let pingReady;
 const startButton = document.getElementById("start-button");
+const lobbyMsg = document.getElementById("lobby");
+const lobbyContainer = document.getElementById("lobby-buttons");
+const shareButton = document.getElementById("share");
+
 function startReady() {
+  defineConnection();
+  lobbyMsg.textContent = "Waiting for opponent to join...";
+  lobbyMsg.classList.add("pulse");
   setGameStatus("ready");
   pingReady = setInterval(() => {
     sendMsg({ type: "ready" });
   }, 1000);
-  startButton.style.display = "none";
+  lobbyContainer.style.display = "none";
 }
 startButton.addEventListener("click", startReady);
 
-if (window["WebSocket"]) {
+function defineConnection() {
   const socketPrefix = location.protocol === "https:" ? "wss" : "ws";
   conn = new WebSocket(socketPrefix + "://" + document.location.host + "/room/ws/" + roomId);
   conn.onclose = (evt) => {
@@ -63,7 +70,7 @@ if (window["WebSocket"]) {
             sendMsg({ type: "ready" });
             setGameStatus("playing");
             startGame();
-            document.getElementById("lobby").style.display = "none";
+            lobbyMsg.style.display = "none";
           }
           break;
         }
@@ -81,8 +88,31 @@ if (window["WebSocket"]) {
       }
     }
   };
-} else {
+}
+
+if (!window["WebSocket"]) {
   let item = document.createElement("div");
   item.innerHTML = "<b>Your browser does not support WebSockets.</b>";
   appendLog(item);
 }
+
+function shareLink() {
+  if (navigator.share) {
+    navigator
+      .share({
+        title: document.title,
+        text: "Play Hydra",
+        url: window.location.href,
+      })
+      .then(() => console.log("Successful share"))
+      .catch((error) => console.log("Error sharing:", error));
+  } else {
+    navigator.clipboard.writeText(window.location.href);
+    shareButton.textContent = "Copied!";
+    setTimeout(() => {
+      shareButton.textContent = "Copy Link";
+    }, 1000);
+  }
+}
+
+shareButton.addEventListener("click", shareLink);
