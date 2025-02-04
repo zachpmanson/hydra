@@ -29,38 +29,31 @@ let state2Optimistic = new GameState({
 let foodDrops = [];
 let gameStep = 1;
 
-const COLOR_MAP = {
-  0: "⬜️",
-  1: "<span class='pulse'>🟦</span>",
-  2: "🟩",
-  3: "<span class='pulse'>🍎</span>",
-  4: "🟥",
-};
+// function drawBoard(state) {
 
-function drawBoard(state) {
-  let boardText = "";
-  for (let r = 0; r < boardRows; r++) {
-    boardText += "";
-    for (let c = 0; c < boardCols; c++) {
-      boardText += ` ${COLOR_MAP[state.board[r][c]]}`;
-    }
-    boardText += "\n";
-  }
-  boardText += `\n${state.name}\n`;
-  // boardText += `step: ${localTick} ${state.step} \n`;
-  boardText += `step diff: ${state.step - gameStep} \n`;
-  // html += `rows: ${boardRows} cols: ${boardCols}\n`;
-  // html += `length: ${state.nLength}\n`;
-  // html += `head: ${JSON.stringify(state1.headPos)}\n`;
-  // html += "\n";
-  // html += state.moves
-  //   .slice()
-  //   .reverse()`
-  //   .map((m) => JSON.stringify(m))
-  //   .join("\n");
+//   let boardText = "";
+//   for (let r = 0; r < boardRows; r++) {
+//     boardText += "";
+//     for (let c = 0; c < boardCols; c++) {
+//       boardText += ` ${COLOR_MAP[state.board[r][c]]}`;
+//     }
+//     boardText += "\n";
+//   }
+//   boardText += `\n${state.name}\n`;
+//   // boardText += `step: ${localTick} ${state.step} \n`;
+//   boardText += `step diff: ${state.step - gameStep} \n`;
+//   // html += `rows: ${boardRows} cols: ${boardCols}\n`;
+//   // html += `length: ${state.nLength}\n`;
+//   // html += `head: ${JSON.stringify(state1.headPos)}\n`;
+//   // html += "\n";
+//   // html += state.moves
+//   //   .slice()
+//   //   .reverse()`
+//   //   .map((m) => JSON.stringify(m))
+//   //   .join("\n");
 
-  document.getElementById(state.target).innerHTML = boardText;
-}
+//   document.getElementById(state.target).innerHTML = boardText;
+// }
 
 export function endGame(localWin, remote = false) {
   if (!localWin) {
@@ -74,9 +67,10 @@ export function endGame(localWin, remote = false) {
 }
 
 export function addFood(r, c) {
-  state1.board[r][c] = 3;
-  state2.board[r][c] = 3;
-  state2Optimistic.board[r][c] = 3;
+  state1.update({ r, c }, 3);
+  state2.update({ r, c }, 3);
+  state2Optimistic.update({ r, c }, 3);
+
   foodDrops.push({
     r,
     c,
@@ -85,51 +79,58 @@ export function addFood(r, c) {
 }
 
 function botMove(state) {
+  const headPos = state.headPos;
   const foodDist = state.board.flatMap((row, r) => {
     return row.map((cell, c) => {
-      return { r, c, isFood: cell === 3, dist: Math.abs(state.headPos.r - r) + Math.abs(state.headPos.c - c) };
+      return { r, c, isFood: cell === 3, dist: Math.abs(headPos.r - r) + Math.abs(headPos.c - c) };
     });
   });
   const nearestFood = foodDist.filter((c) => c.isFood).sort((a, b) => a.dist - b.dist)?.[0];
 
   if (nearestFood) {
     const { r, c } = nearestFood;
-    if (r < state.headPos.r && [0, 3].includes(state.board[state.headPos.r - 1][state.headPos.c])) {
+    if (r < headPos.r && [0, 3].includes(state.board[headPos.r - 1][headPos.c])) {
       handleKey("ArrowUp");
       return;
-    } else if (r > state.headPos.r && [0, 3].includes(state.board[state.headPos.r + 1][state.headPos.c])) {
+    } else if (r > headPos.r && [0, 3].includes(state.board[headPos.r + 1][headPos.c])) {
       handleKey("ArrowDown");
       return;
-    } else if (c < state.headPos.c && [0, 3].includes(state.board[state.headPos.r][state.headPos.c - 1])) {
+    } else if (c < headPos.c && [0, 3].includes(state.board[headPos.r][headPos.c - 1])) {
       handleKey("ArrowLeft");
       return;
-    } else if (c > state.headPos.c && [0, 3].includes(state.board[state.headPos.r][state.headPos.c + 1])) {
+    } else if (c > headPos.c && [0, 3].includes(state.board[headPos.r][headPos.c + 1])) {
       handleKey("ArrowRight");
       return;
     }
   }
 
   const neighbours = [
-    { r: state.headPos.r - 1, c: state.headPos.c, key: "ArrowUp", decent: false },
-    { r: state.headPos.r + 1, c: state.headPos.c, key: "ArrowDown", decent: false },
-    { r: state.headPos.r, c: state.headPos.c - 1, key: "ArrowLeft", decent: false },
-    { r: state.headPos.r, c: state.headPos.c + 1, key: "ArrowRight", decent: false },
-  ];
+    { r: headPos.r - 1, c: headPos.c, key: "ArrowUp", decent: false },
+    { r: headPos.r + 1, c: headPos.c, key: "ArrowDown", decent: false },
+    { r: headPos.r, c: headPos.c - 1, key: "ArrowLeft", decent: false },
+    { r: headPos.r, c: headPos.c + 1, key: "ArrowRight", decent: false },
+  ].filter((n) => state.currentDir !== OPPOSITE_MAP[DIR_MAP[n.key]]); // eliminate 180 turns);
+  console.debug("Neighbours", neighbours);
 
   for (let i = 0; i < neighbours.length; i++) {
     const option = neighbours[i];
     if (
+      //skip if out of bounds
       option.r < 0 ||
       option.r >= boardRows ||
       option.c < 0 ||
-      option.c >= boardCols ||
-      // add padding
-      option.r - 1 < 0 ||
-      option.r + 1 >= boardRows ||
-      option.c - 1 < 0 ||
-      option.c + 1 >= boardCols
+      option.c >= boardCols
     ) {
       continue;
+    }
+
+    // if not in the gutter, avoid the gutter
+    if (headPos.r > 0 && headPos.r < boardRows - 1) {
+      if (option.r - 1 < 0 || option.r + 1 >= boardRows) continue;
+    }
+
+    if (headPos.c > 0 && headPos.c < boardCols - 1) {
+      if (option.c - 1 < 0 || option.c + 1 >= boardCols) continue;
     }
 
     const n = state.board[option.r][option.c];
@@ -140,6 +141,7 @@ function botMove(state) {
         break;
       }
       case 3: {
+        console.error("Impossible state, should have already found nearestFood?");
         handleKey(option.key);
         return;
       }
@@ -149,9 +151,12 @@ function botMove(state) {
       }
     }
   }
-
   // if we get here, we have no good, moves
-  const decentMoves = neighbours.filter((n) => n.decent).map((n) => n.key);
+  const decentMoves = neighbours
+    .filter((n) => n.decent)
+
+    .map((n) => n.key);
+  console.debug("No good bot moves, here are the decent moves", decentMoves);
   if (decentMoves.length === 0) {
     return;
   }
@@ -167,8 +172,13 @@ function botMove(state) {
 }
 
 let localTick = 0;
+const TICK_MS = 50;
 const TICK_STEP_RATIO = 3;
+
 export function startGame() {
+  state1.initDraw();
+  state2.initDraw();
+  state2Optimistic.initDraw();
   tickLoop = setInterval(() => {
     const remoteTickDiff = gameStep - state2.step;
     localTick++;
@@ -207,7 +217,7 @@ export function startGame() {
         } while (!success);
       }
     }
-  }, 50);
+  }, TICK_MS);
 }
 
 function runNTicks(state, nTicks) {
@@ -220,7 +230,7 @@ function step(state) {
   const pastSteps = state.moves.filter((m) => m.step <= state.step);
   let currentDir = pastSteps.at(-1)?.dir;
 
-  state.board[state.headPos.r][state.headPos.c] = 2;
+  state.update(state.headPos, 2);
   state.tailWipeQueue.push({ ...state.headPos });
 
   let newHeadPos = { ...state.headPos };
@@ -242,12 +252,12 @@ function step(state) {
     state.board.at(newHeadPos.r)?.at(newHeadPos.c) === 2;
 
   if (isEdge) {
-    state.board[state.headPos.r][state.headPos.c] = 4;
+    state.update(state.headPos, 4);
     if (!state.isOptimistic) {
       setTimeout(() => endGame(!state.isLocal), 200);
     }
   } else if (isCollision) {
-    state.board[newHeadPos.r][newHeadPos.c] = 4;
+    state.update(newHeadPos, 4);
     if (!state.isOptimistic) {
       setTimeout(() => endGame(!state.isLocal), 200);
     }
@@ -259,30 +269,32 @@ function step(state) {
       // if any screen eats it, remove it from local game
       if (state1.board[state.headPos.r][state.headPos.c] === 3) {
         state1.board[state.headPos.r][state.headPos.c] = 0;
+        state1.update(state.headPos, 0);
       }
 
       // if any real player eats it, remove it from remote screen
       if (!state.isOptimistic && state2.board[state.headPos.r][state.headPos.c] === 3) {
-        state2.board[state.headPos.r][state.headPos.c] = 0;
+        state2.update(state.headPos, 0);
       }
 
       // if optimistic player eats it, remove it from optimistic screen
       if (state2Optimistic.board[state.headPos.r][state.headPos.c] === 3) {
         state2Optimistic.board[state.headPos.r][state.headPos.c] = 0;
+        state2Optimistic.update(state.headPos, 0);
       }
     }
 
-    state.board[state.headPos.r][state.headPos.c] = 1;
+    state.update(state.headPos, 1);
 
     if (!isEating && state.step > 2) {
       let resetCoords = state.tailWipeQueue.shift();
       if (resetCoords) {
-        state.board[resetCoords.r][resetCoords.c] = 0;
+        state.update(resetCoords, 0);
       }
     }
   }
 
-  drawBoard(state);
+  // drawBoard(state);
   state.step++;
 }
 
@@ -305,7 +317,7 @@ const MIRROR_MAP = {
 
 function handleKey(keyname) {
   const lastMove = state1.moves[state1.moves.length - 1];
-  if (lastMove.step === gameStep) {
+  if (lastMove.step >= gameStep) {
     return;
   }
 
@@ -341,21 +353,22 @@ export function reconcileRemoteState(newMove) {
   state2.moves.push(newMove);
 
   // figure out how many ticks between the last two moves
-  const newMaxTick = state2.moves.at(-1).step;
-  const oldMaxTick = state2.moves.at(-2).step;
-  const tickDiff = newMaxTick - oldMaxTick;
+  const newMaxStep = state2.moves.at(-1).step;
+  const oldMaxStep = state2.moves.at(-2).step;
+  const tickDiff = newMaxStep - oldMaxStep;
 
   // fast forward the remote game state to the new max tick
   runNTicks(state2, tickDiff);
 
+  // figure out difference between local and new remote tick
+  const liveTickDiff = gameStep - newMaxStep;
+
   // rollback optimistc game state to the new confirmed remote state
-  state2Optimistic = structuredClone(state2);
+  state2Optimistic.steal(state2, liveTickDiff);
   state2Optimistic.name = "Remote Game (Optimistic)";
   state2Optimistic.target = "game3";
   state2Optimistic.isOptimistic = true;
 
-  // figure out difference between local and new remote tick
-  const liveTickDiff = gameStep - newMaxTick;
   // fast forward optimistic game to local tick
   runNTicks(state2Optimistic, liveTickDiff);
 }

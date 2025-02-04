@@ -8,7 +8,7 @@
   <div style="overflow: hidden; display: flex; gap: 1rem; flex-direction: column; align-items: center">
     <p class="pulse" id="lobby">Waiting for opponent to join...</p>
     <button id="start-button">Ready?</button>
-    <pre id="game1" class="game"></pre>
+    <div id="game1"></div>
     <table>
       <tr>
         <td></td>
@@ -28,8 +28,10 @@
       </tr>
     </table>
     <!-- <pre id="game2" class="game" style="display: none"></pre> -->
-    <pre id="game3" class="game"></pre>
-    <pre id="game2" class="game"></pre>
+    <div>
+      <div id="game3"></div>
+    </div>
+    <div id="game2"></div>
   </div>
   <!-- <pre id="game2" style="flex: 1"></pre> -->
   <pre id="log" style="max-width: 50%"></pre>
@@ -54,11 +56,14 @@
   .pulse {
     animation: pulse 2s infinite;
   }
+  .bg-cell {
+    opacity: 0.1;
+  }
   button {
     font-family: "Nokia", sans-serif;
     background-color: var(--nokia-green);
     border: black solid 2px;
-    border-radius: 4px;
+    /* border-radius: 4px; */
   }
   button:hover {
     background-color: black;
@@ -76,6 +81,14 @@
   }
   pre.game {
     font-size: 0.35rem;
+  }
+  div.game {
+    display: grid;
+    grid-template-columns: repeat(40, 1fr);
+    grid-template-rows: repeat(30, 1fr);
+    gap: 2px;
+    font-size: 0.35rem;
+    border: black solid 2px;
   }
 
   table {
